@@ -1,0 +1,7 @@
+.movieList {
+  list-style-type: none;
+}
+
+.movieItem {
+  font-size: 18px;
+}

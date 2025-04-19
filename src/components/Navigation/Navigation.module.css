@@ -1,0 +1,21 @@
+.link {
+  color: rgb(106, 50, 190);
+  font-size: 26px;
+  text-decoration: none;
+}
+.nav {
+  width: 100%;
+  display: flex;
+  gap: 40px;
+}
+.active {
+  color: rgb(0, 102, 255);
+  text-decoration: underline;
+}
+
+.navWrapper {
+  margin-bottom: 40px;
+  border-bottom: solid 1px black;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  padding: 10px 0 10px 15px;
+}

@@ -1,30 +1,43 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import MovieList from "../../components/MovieList/MovieList";
 import { getMovies } from "../../apiService/requests";
 import Loader from "../../components/Loader/Loader";
 import ErrorMessage from "../../components/ErrorMessage/ErrorMessage";
 import s from "./HomePage.module.css";
+import { useSelector, useDispatch } from "react-redux";
+import { setIsLoading, setMovies, setError } from "../../redux/moviesSlice";
 
 const HomePage = () => {
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const movies = useSelector((state) => state.movies.moviesHome);
+  const isLoading = useSelector((state) => state.movies.isLoading);
+  const error = useSelector((state) => state.movies.error);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchMovies = async () => {
-      setIsLoading(true);
+      dispatch(setError(null));
+      dispatch(setIsLoading(true));
+
       try {
         const { results } = await getMovies();
-        setMovies((prevMovies) => [...prevMovies, ...results]);
+
+        const uniqueMovies = [...movies, ...results].filter(
+          (movie, index, self) =>
+            index === self.findIndex((m) => m.id === movie.id)
+        );
+
+        dispatch(setMovies(uniqueMovies));
       } catch (error) {
-        setError(error);
+        dispatch(setError(error));
       } finally {
-        setIsLoading(false);
-        setError(null);
+        dispatch(setIsLoading(false));
       }
     };
-    fetchMovies();
-  }, []);
+
+    if (movies.length === 0) {
+      fetchMovies();
+    }
+  }, [dispatch, movies]);
 
   return (
     <>

@@ -1,32 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getMovieReview } from "../../apiService/requests";
 import Loader from "../../components/Loader/Loader";
 import ErrorMessage from "../../components/ErrorMessage/ErrorMessage";
 import s from "./MovieReviews.module.css";
+import { useSelector, useDispatch } from "react-redux";
+import { setIsLoading, setReviews, setError } from "../../redux/reviewsSlice";
 
 const MovieReviews = () => {
   const { movieId } = useParams();
-  const [reviews, setReviews] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const reviews = useSelector((state) => state.reviews.reviews);
+  const isLoading = useSelector((state) => state.reviews.isLoading);
+  const error = useSelector((state) => state.reviews.error);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (!movieId) return;
     const getData = async () => {
-      setIsLoading(true);
+      dispatch(setIsLoading(true));
       try {
         const data = await getMovieReview(movieId);
-        setReviews(data.results);
+        dispatch(setReviews(data.results));
       } catch (error) {
-        setError(error);
+        dispatch(setError(error));
       } finally {
-        setIsLoading(false);
-        setError(null);
+        dispatch(setIsLoading(false));
+        dispatch(setError(null));
       }
     };
     getData();
-  }, [movieId]);
+  }, [movieId, dispatch]);
 
   return (
     <div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect } from "react";
 import SearchBar from "../../components/SearchBar/SearchBar";
 import { useSearchParams } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -6,93 +6,82 @@ import MovieList from "../../components/MovieList/MovieList";
 import { getSearchedMovies } from "../../apiService/requests";
 import Loader from "../../components/Loader/Loader";
 import ErrorMessage from "../../components/ErrorMessage/ErrorMessage";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setIsLoading,
+  setMoviesSearch,
+  setError,
+  setTotalPages,
+  setIsEmpty,
+} from "../../redux/moviesSlice";
 
 const MoviesPage = () => {
-  const [movies, setMovies] = useState([]);
-  const [totalPages, setTotalPages] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isEmpty, setIsEmpty] = useState(false);
+  const movies = useSelector((state) => state.movies.moviesSearch);
+  const isLoading = useSelector((state) => state.movies.isLoading);
+  const error = useSelector((state) => state.movies.error);
+  const isEmpty = useSelector((state) => state.movies.isEmpty);
+  const totalPages = useSelector((state) => state.movies.totalPages);
+  const dispatch = useDispatch();
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const query = searchParams.get("query") || "";
-  const pageFromUrl = Number(searchParams.get("page")) || 1;
-  const [page, setPage] = useState(pageFromUrl);
-
-  const isRestoredFromSession = useRef(false);
+  const query = searchParams.get("query") ?? "";
+  const page = Number(searchParams.get("page")) || 1;
 
   useEffect(() => {
-    const savedMovies = sessionStorage.getItem("movies");
-    const savedPage = Number(sessionStorage.getItem("page"));
-    const savedQuery = sessionStorage.getItem("query");
-
-    if (savedMovies && savedQuery === query && savedPage === pageFromUrl) {
-      setMovies(JSON.parse(savedMovies));
-      setPage(savedPage);
-      isRestoredFromSession.current = true;
-    }
-  }, []);
+    dispatch(setMoviesSearch([]));
+    dispatch(setError(null));
+  }, [query, dispatch]);
 
   useEffect(() => {
-    if (query) {
-      searchParams.set("page", page);
-      setSearchParams(searchParams);
-    }
-  }, [page, query, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (!query || isRestoredFromSession.current) {
-      isRestoredFromSession.current = false;
+    if (!query) {
       return;
     }
 
     const getMovies = async () => {
-      setIsLoading(true);
+      dispatch(setIsLoading(true));
       try {
         const data = await getSearchedMovies(query, page);
         if (!data.results.length) {
-          return setIsEmpty(true);
+          return dispatch(setIsEmpty(true));
         }
-        setIsEmpty(false);
-        const newMovies =
-          page === 1 ? data.results : [...movies, ...data.results];
-        setMovies(newMovies);
-        setTotalPages(data.total_pages);
+        dispatch(setIsEmpty(false));
 
-        sessionStorage.setItem("movies", JSON.stringify(newMovies));
-        sessionStorage.setItem("page", page.toString());
-        sessionStorage.setItem("query", query);
+        const newMovies =
+          page === 1
+            ? data.results
+            : [...movies, ...data.results].filter(
+                (movie, index, self) =>
+                  index === self.findIndex((m) => m.id === movie.id)
+              );
+
+        dispatch(setMoviesSearch(newMovies));
+
+        dispatch(setTotalPages(data.total_pages));
       } catch (error) {
-        setError(error);
+        dispatch(setError(error));
       } finally {
-        setIsLoading(false);
+        dispatch(setIsLoading(false));
       }
     };
 
     getMovies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, page]);
+  }, [query, page, dispatch]);
 
   const handleSearch = (newValue) => {
-    sessionStorage.removeItem("movies");
-    sessionStorage.removeItem("page");
-    sessionStorage.removeItem("query");
-
     if (!newValue) {
       searchParams.delete("query");
       searchParams.delete("page");
       setSearchParams(searchParams);
-      setMovies([]);
-      setError(null);
+      dispatch(setMoviesSearch([]));
+      dispatch(setError(null));
       return;
     }
 
     searchParams.set("query", newValue);
     searchParams.set("page", 1);
     setSearchParams(searchParams);
-    setPage(1);
-    setMovies([]);
-    setError(null);
+    dispatch(setMoviesSearch([]));
+    dispatch(setError(null));
   };
 
   const filteredMovies = movies.filter((movie) =>
@@ -100,7 +89,10 @@ const MoviesPage = () => {
   );
 
   const handleLoadMore = () => {
-    setPage((prevPage) => prevPage + 1);
+    if (page < totalPages) {
+      searchParams.set("page", page + 1);
+      setSearchParams(searchParams);
+    }
   };
 
   return (

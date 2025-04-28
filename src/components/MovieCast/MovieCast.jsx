@@ -1,32 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getMovieCast } from "../../apiService/requests";
 import Loader from "../../components/Loader/Loader";
 import ErrorMessage from "../../components/ErrorMessage/ErrorMessage";
 import s from "./MovieCast.module.css";
+import { useSelector, useDispatch } from "react-redux";
+import { setIsLoading, setActors, setError } from "../../redux/actorsSlice";
 
 const MovieCast = () => {
   const { movieId } = useParams();
-  const [actors, setActors] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const actors = useSelector((state) => state.actors.actors);
+  const error = useSelector((state) => state.actors.error);
+  const isLoading = useSelector((state) => state.actors.isLoading);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (!movieId) return;
     const getData = async () => {
-      setIsLoading(true);
+      dispatch(setIsLoading(true));
       try {
         const data = await getMovieCast(movieId);
-        setActors(data.cast);
+        dispatch(setActors(data.cast));
       } catch (error) {
-        setError(error);
+        dispatch(setError(error));
       } finally {
-        setIsLoading(false);
-        setError(null);
+        dispatch(setIsLoading(false));
+        dispatch(setError(null));
       }
     };
     getData();
-  }, [movieId]);
+  }, [movieId, dispatch]);
 
   return (
     <div>
